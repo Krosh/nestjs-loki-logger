@@ -11,16 +11,25 @@ export class LokiLogger extends Logger {
   static lokiUrl = 'localhost:3100';
   static defaultLabels: any = {};
   static logToConsole = false;
+  static lastDate;
+  static numInOneTime = 0;
 
   private static sendLokiRequest = (
     labels: Record<string, string>,
     message: string,
   ): any => {
+    const currentDate = Date.now()
+    if (currentDate === LokiLogger.lastDate) {
+      numInOneTime++;
+    } else {
+      LokiLogger.lastDate = currentDate
+      numInOneTime = 0;
+    }
     const data = JSON.stringify({
       streams: [
         {
           stream: labels,
-          values: [[(Date.now() * 1000000).toString(), message]],
+          values: [[(currentDate * 1000000).toString(), message]],
         },
       ],
     });
@@ -29,8 +38,7 @@ export class LokiLogger extends Logger {
       method: 'POST',
       url: `${LokiLogger.lokiUrl}/loki/api/v1/push`,
       headers: {
-        'Content-Type': 'application/json',
-        'Content-Encoding': 'application/gzip',
+        'Content-Type': 'application/json'
       },
       data: data,
     })
